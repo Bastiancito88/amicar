@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from plottinglib import custom_confusion_matrix, custom_roc_curve
-from xgboost import plot_importance
+import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder, OneHotEncoder
@@ -246,9 +246,9 @@ class AmicarDataset():
         print(X_train.shape)
         print(y_train.shape)
         
-        params = {'max_leaves' : [2, 3],
+        params = {'max_leaves' : [2, 3, 4],
           'scale_pos_weight' : [scale_pos_weight, np.sqrt(scale_pos_weight)],
-          'max_depth': [5, 10],
+          'max_depth': [5, 10, 15],
           'eval_metric' : ['auc']}
 
         folds = self.n_folds
@@ -279,9 +279,9 @@ class AmicarDataset():
         X_train = X_train.fillna(-1)
         y_train = self.label_encoder.transform(self.y_sub) if subsample else self.label_encoder.transform(self.y_train)
 
-        params = {'num_leaves': [ 2, 3], 
+        params = {'num_leaves': [ 2, 3, 4], 
          'objective': ['binary'],
-         'max_depth' : [5, 10],
+         'max_depth' : [5, 10, 15],
          'metric' : ['auc'],
           'scale_pos_weight' : [scale_pos_weight, np.sqrt(scale_pos_weight)]
          }
@@ -372,28 +372,27 @@ class AmicarDataset():
     def get_feature_importance(self, mood = '1'):
 
         self.check_folder()
-        fig, ax = plt.subplots(1,1,figsize= ( 10, 6))
+        fig, ax = plt.subplots(1,1,figsize= ( 12, 9))
         
         if mood == '1':
-            ax = plot_importance(self.xgboost, ax = ax, max_num_features=10)
-            new_label_axi = []
-            for y_label in ax.get_yticklabels():
-                new_axi = y_label
-                new_axi[2] = new_axi[2].replace('_', ' ')
-                new_label_axi.apend(new_axi)
-
-            ax.set_yticklabels(new_label_axi)
-            plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor", fontsize = 5)
-
-
-            print(ax.get_yticklabels())
-            plt.grid(False)
+            ax = xgb.plot_importance(self.xgboost, ax = ax, max_num_features=10)
+            
         elif mood == '2':
             ax = lgb.plot_importance(self.lgbm, max_num_features=10
-                         , figsize= ( 10, 6))
-            plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor", fontsize = 5)
-            plt.grid(False)
+                         , figsize= ( 12, 9))
 
+        new_label_axi = []
+        for y_label in ax.get_yticklabels():
+            new_axi = y_label
+            new_axi.set_text( new_axi.get_text().replace('_', ' \n ').title())
+            new_label_axi.append(new_axi)
+
+        ax.set_yticklabels(new_label_axi)
+        ax.set_ylabel('')
+        ax.set_xlabel('')
+        ax.set_title('Ranking de Caracteristicas')
+        plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor", fontsize = 11, multialignment='center')
+        plt.grid(False)
         plt.savefig('./results/' + self.dataset_name + '/FI_'+ str(mood)+ '_.png', format = 'png')
         plt.close()
     

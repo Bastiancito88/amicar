@@ -4,6 +4,7 @@ import glob
 import feather
 import re
 import joblib
+from xgboost.training import train
 from models import AmicarDataset
 import pandas as pd
 
