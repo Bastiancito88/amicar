@@ -52,8 +52,6 @@ class AmicarDataset():
         self.lgbm =  LGBMClassifier()
 
         self.rf = RandomForestClassifier(class_weight = 'balanced')
-
-
         self.brf = BalancedRandomForestClassifier(class_weight = 'balanced')
 
         self.column_transformer = None
@@ -255,7 +253,7 @@ class AmicarDataset():
         scale_pos_weight = counter_dic['NO_PREPAGO']/counter_dic['PREPAGO']
 
         X_train = self.normalize_data( subsample= subsample)
-        #X_train = X_train.fillna(-1)
+        X_train = X_train.fillna(-1)
         y_train = self.label_encoder.transform(self.y_sub) if subsample else self.label_encoder.transform(self.y_train)
 
 
@@ -263,9 +261,10 @@ class AmicarDataset():
         print(X_train.shape)
         print(y_train.shape)
         
-        params = {'max_leaves' : [2, 3, 4],
+        params = {'n_estimators': [int(x) for x in np.linspace(start = 100, stop = 200, num = 5)],
+           'max_leaves' : [2, 3],
           'scale_pos_weight' : [scale_pos_weight, np.sqrt(scale_pos_weight)],
-          'max_depth': [5, 10, 15],
+          'max_depth': [int(x) for x in np.linspace(3, 40, num = 5)],
           'max_delta_step': [1, 10, 20],
           'eval_metric' : ['auc', 'aucpr', 'error'],
           }
@@ -297,9 +296,9 @@ class AmicarDataset():
         X_train = X_train.fillna(-1)
         y_train = self.label_encoder.transform(self.y_sub) if subsample else self.label_encoder.transform(self.y_train)
 
-        params = {'num_leaves': [ 2, 3, 10, 20], 
+        params = {'num_leaves': [ 2, 3], 
          'objective': ['binary'],
-         'max_depth' : [5, 10, 15],
+         'max_depth' : [int(x) for x in np.linspace(3, 40, num = 5)],
          'metric' : ['auc', 'aucpr', 'error'],
           'scale_pos_weight' : [scale_pos_weight, np.sqrt(scale_pos_weight)]
          }
@@ -330,19 +329,16 @@ class AmicarDataset():
         X_train = self.normalize_data(subsample=subsample)
         X_train = X_train.fillna(-1)
         y_train = self.label_encoder.transform(self.y_sub) if subsample else self.label_encoder.transform(self.y_train)
-
-
         # Number of trees in random forest
-        n_estimators = [100, 150] #[int(x) for x in np.linspace(start = 100, stop = 200, num = 15)]
+        n_estimators = [int(x) for x in np.linspace(start = 100, stop = 200, num = 5)]
         # Number of features to consider at every split
         max_features = ['auto', 'sqrt', 'log2']
         # Maximum number of levels in tree
-        max_depth = [5, 10, 15] # [int(x) for x in np.linspace(3, 40, num = 15)]
-       
+        max_depth = [int(x) for x in np.linspace(3, 40, num = 5)]
         # Minimum number of samples required to split a node
-        min_samples_split = [2, 4] #falta un 6
+        min_samples_split = [2, 4, 6] 
         # Minimum number of samples required at each leaf node
-        min_samples_leaf = [1, 2] # le falta un 4
+        min_samples_leaf = [1, 2, 4] 
         # Method of selecting samples for training each tree
         bootstrap = [True, False]
         # Create the random grid
@@ -363,10 +359,6 @@ class AmicarDataset():
         grid_search.fit(X_train, y_train)
         self.rf = grid_search.best_estimator_
         self.mood['3'] = grid_search.best_estimator_
-        try:
-            self.feature_importance['3'] = self.rf.feature_importances_
-        except:
-            pass
 
     def fit_brf(self, subsample = False):
 
@@ -378,12 +370,11 @@ class AmicarDataset():
         y_train = self.label_encoder.transform(self.y_sub) if subsample else self.label_encoder.transform(self.y_train)
 
         # Number of trees in random forest
-        n_estimators =  [100, 150]  #[int(x) for x in np.linspace(start = 100, stop = 200, num = 15)]
+        n_estimators =  [int(x) for x in np.linspace(start = 100, stop = 200, num = 5)]
         # Number of features to consider at every split
         max_features = ['auto', 'sqrt', 'log2']
         # Maximum number of levels in tree
-        max_depth =[5, 10, 15] # [int(x) for x in np.linspace(3, 40, num = 15)]
-       
+        max_depth = [int(x) for x in np.linspace(3, 40, num = 5)]
         # Minimum number of samples required to split a node
         min_samples_split = [2, 4, 6]
         # Minimum number of samples required at each leaf node
@@ -404,10 +395,6 @@ class AmicarDataset():
         grid_search.fit(X_train, y_train)
         self.brf = grid_search.best_estimator_
         self.mood['4'] = grid_search.best_estimator_
-        try:
-            self.feature_importance['4'] = self.brf.feature_importances_
-        except:
-            pass
 
     ''' get predictions'''
     def forward(self, mood = '1'):
@@ -512,24 +499,22 @@ class AmicarDataset():
     def get_feature_importance(self, mood = '1'):
 
         self.check_folder()
-        fig, ax = plt.subplots(1,1,figsize= ( 12, 9))
+        fig, ax = plt.subplots(1,1,figsize= ( 16, 15))
         
         if mood == '1':
-            ax = xgb.plot_importance(self.xgboost, ax = ax, max_num_features=10)
-            
+            feat_importances = pd.Series(self.xgboost.feature_importances_, index=self.X_train.columns)
+            ax = feat_importances.nlargest(15).sort_values(ascending=True).div(100.0).plot(kind='barh', width=0.2)
+            #ax = xgb.plot_importance(self.xgboost, ax = ax, max_num_features=15)
         elif mood == '2':
-            ax = lgb.plot_importance(self.lgbm, max_num_features=10
-                         , figsize= ( 12, 9))
-
+            feat_importances = pd.Series(self.lgbm.feature_importances_, index=self.X_train.columns)
+            ax = feat_importances.nlargest(15).sort_values(ascending=True).div(100.0).plot(kind='barh', width=0.2)
+            #ax = lgb.plot_importance(self.lgbm, max_num_features=15, figsize= ( 12, 9))
         elif mood == '3':
-
-            import matplotlib.pyplot as plt
-            
-            feat_importances = pd.Series(self.rf.feature_importances_, index= self.X_train.columns)
-            ax = feat_importances.nlargest(10).plot(kind='barh')
-
+            feat_importances = pd.Series(self.rf.feature_importances_, index=self.X_train.columns)
+            ax = feat_importances.nlargest(15).sort_values(ascending=True).plot(kind='barh', width=0.2)
         elif mood == '4':
-            ax = None
+            feat_importances = pd.Series(self.brf.feature_importances_, index=self.X_train.columns)
+            ax = feat_importances.nlargest(15).sort_values(ascending=True).plot(kind='barh', width=0.2)
 
         new_label_axi = []
         for y_label in ax.get_yticklabels():
@@ -541,7 +526,7 @@ class AmicarDataset():
         ax.set_ylabel('')
         ax.set_xlabel('')
         ax.set_title('Ranking de Caracteristicas')
-        plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor", fontsize = 11, multialignment='center')
+        plt.setp(ax.get_yticklabels(), rotation= 0 , ha="right", rotation_mode="anchor", fontsize = 11, multialignment='center')
         clf_name = self.name_clf(mood = mood) 
         plt.grid(False)
         plt.savefig('./results/' + self.dataset_name + '/FI_'+ self.dataset_name + clf_name + '.png', format = 'png')
@@ -588,6 +573,8 @@ class AmicarDataset():
 
         joblib.dump( self.xgboost, './results/' + self.dataset_name + '/xgboost.pkl')
         joblib.dump( self.lgbm, './results/' + self.dataset_name + '/lgbm.pkl')
+        joblib.dump( self.rf, './results/' + self.dataset_name + '/rf.pkl')
+        joblib.dump( self.brf, './results/' + self.dataset_name + '/brf.pkl')
 
         data_test = self.X_test
         data_test['ETIQUETA'] = self.y_test

@@ -17,8 +17,6 @@ if __name__ == '__main__':
     print(results_folders)
 
     for result in results_folders:
-
-
         
         print('*'*10)
         print(result)
@@ -44,5 +42,7 @@ if __name__ == '__main__':
         print('kappa value =', kappa_value)
         print('*'*10)
 
+        amicar_model.classification_report(mood= '1')
         amicar_model.classification_report(mood= '2')
-        amicar_model.classification_report(mood= '2')
+        amicar_model.classification_report(mood= '3')
+        amicar_model.classification_report(mood= '4')

@@ -24,26 +24,22 @@ if __name__ == '__main__':
 
             models = AmicarDataset(path= folder_path, dataset_name = dataset_name, seed=42)
             models.read_folder()
-            models.split_dataset(test_size= 0.2)
+            models.split_dataset(test_size= 0.95)
             models.fit_normalize_data()
                 #models.subsampling(size = 0.99)
 
             models.fit_xgboost(subsample=False)
             models.fit_lgbm(subsample=False)
             models.fit_rf(subsample=False)
-            #models.fit_brf(subsample=False)
+            models.fit_brf(subsample=False)
 
             models.classification_report(mood= '2')
             models.get_confusion_matrix(mood= '2')
             models.get_roc_curve(mood = '2')
-            models.get_feature_importance(mood= '2')
-
+            
             models.classification_report(mood= '1')
             models.get_confusion_matrix(mood= '1')
             models.get_roc_curve(mood = '1')
-            models.get_feature_importance(mood= '1')
-
-
 
             models.classification_report(mood= '3')
             models.get_confusion_matrix(mood= '3')
@@ -52,6 +48,13 @@ if __name__ == '__main__':
             models.classification_report(mood= '4')
             models.get_confusion_matrix(mood= '4')
             models.get_roc_curve(mood = '4')
+
+
+            models.get_feature_importance(mood= '1')
+            models.get_feature_importance(mood= '2')
+            models.get_feature_importance(mood= '3')
+            models.get_feature_importance(mood= '4')
+
 
             kappa_value = models.get_kappa_cohen()
             print('*'*10)
