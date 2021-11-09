@@ -17,6 +17,12 @@ if __name__ == '__main__':
     print(results_folders)
 
     for result in results_folders:
+
+
+        
+        print('*'*10)
+        print(result)
+        print('*'*10)
         
         # path amicar model 
         model_path = glob.glob(result + '*models.pkl')[0]

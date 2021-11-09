@@ -218,8 +218,3 @@ def custom_roc_curve(y_test, y_score):
     plt.xticks(fontsize = 12)
     plt.yticks(fontsize = 12)
     
-def scatter_plot(data, y):
-
-    fig, ax = plt.subplots(1,1, figsize = (8,8) )
-
-    return fig, ax
